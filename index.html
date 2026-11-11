@@ -12,7 +12,8 @@ const DEFAULT_SUBJECTS=['General Medicine','General Surgery','Paediatrics','Opht
 const DEFAULT_CATEGORIES={'LECTURE':75,'SGT':75,'SDL':75,'AETCOM':75,'POSTING':80};
 const fresh=()=>({subjects:DEFAULT_SUBJECTS.map(name=>({id:crypto.randomUUID?crypto.randomUUID():id(),name,required:75,categoryRequirements:{...DEFAULT_CATEGORIES}})),sessions:[],holidays:[],prefs:{theme:'spring',dark:false,font:'system',requirements:{}},imports:[],recurring:[]});
 let db=load(),tab='overview',selectedDate=iso(new Date()),calMonth=new Date();let pendingImport=null;
-if(!db.subjects?.length&&!db.sessions?.length){db.subjects=DEFAULT_SUBJECTS.map(name=>({id:id(),name,required:75,categoryRequirements:{...DEFAULT_CATEGORIES}}));db.recurring=db.recurring||[];save();}
+// One-time safe migration: seed the requested subjects even if an older database already contains sessions.
+if(!db.defaultsSeeded){db.subjects=Array.isArray(db.subjects)?db.subjects:[];const norm=x=>String(x||'').trim().toLowerCase();for(const name of DEFAULT_SUBJECTS){let existing=db.subjects.find(s=>norm(s.name)===norm(name));if(!existing){db.subjects.push({id:id(),name,required:75,categoryRequirements:{...DEFAULT_CATEGORIES}})}else{existing.categoryRequirements={...DEFAULT_CATEGORIES,...(existing.categoryRequirements||{})};existing.required=existing.required??75;}}db.recurring=db.recurring||[];db.holidays=db.holidays||[];db.imports=db.imports||[];db.prefs=db.prefs||{theme:'spring',dark:false,font:'system',requirements:{}};db.defaultsSeeded=true;save();}
 function load(){try{return JSON.parse(localStorage.getItem(KEY))||fresh()}catch(e){return fresh()}}
 function save(){localStorage.setItem(KEY,JSON.stringify(db))}
 function iso(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
